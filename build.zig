@@ -31,10 +31,19 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "zig-commit-emoji",
-        .root_source_file = b.path("src/main.zig"),
+        .root_source_file = b.path("./src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    const zig_cli_dep = b.dependency("zig-cli", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const zig_cli_mod = zig_cli_dep.module("zig-cli");
+
+    exe.root_module.addImport("zig-cli", zig_cli_mod);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
