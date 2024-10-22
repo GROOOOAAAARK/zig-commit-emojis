@@ -14,11 +14,23 @@ fn run_list() !void {
     }
 }
 
+fn run_search() !void {
+    std.log.info("Not implemented yet !", .{});
+}
+
 fn list_command() !cli.Command {
     return cli.Command{
         .name = "list",
         .description = cli.Description{ .one_line = "Display all commit emojis available." },
         .target = cli.CommandTarget{ .action = cli.CommandAction{ .exec = run_list } },
+    };
+}
+
+fn search_command() !cli.Command {
+    return cli.Command{
+        .name = "search",
+        .description = cli.Description{ .one_line = "Searches for a commit emoji based on a keyword." },
+        .target = cli.CommandTarget{ .action = cli.CommandAction{ .exec = run_search } },
     };
 }
 
