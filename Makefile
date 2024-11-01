@@ -12,13 +12,13 @@ build-watch: # Build the project continuously on file changes
 	@watch -i 3 make build
 
 copy-executable:
-	@cp ./zig-out/bin/zig-commit-emoji $INSTALL_PATH/
+	@cp ./zig-out/bin/zig-commit-emoji $(INSTALL_PATH)/
 
 install-path:
-	@echo "export PATH=$PATH:$INSTALL_PATH" >> ~/.${TERMINAL_INTERPRETER}env
+	@echo "export PATH=$PATH:$INSTALL_PATH" >> ~/.$(TERMINAL_INTERPRETER)env
 
 create-alias:
-	@echo "alias zce=zig-commit-emoji" >> ~/.${TERMINAL_INTERPRETER}env
+	@echo "alias zce=zig-commit-emoji" >> ~/.$(TERMINAL_INTERPRETER)env
 
 install:
 	@mkdir -p $INSTALL_PATH
