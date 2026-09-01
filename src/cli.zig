@@ -56,6 +56,23 @@ fn list_command() !cli.Command {
     };
 }
 
+fn search_command(alloc: *std.mem.Allocator) !cli.Command {
+    return cli.Command{
+        .name = "search",
+        .description = cli.Description{ .one_line = "Searches for a commit emoji based on a keyword." },
+        .options = &[_]cli.Option{
+            cli.Option{
+                .long_name = "keyword",
+                .short_alias = 'k',
+                .required = true,
+                .help = "The keyword to search for in the list.",
+                .value_ref = alloc.mkRef(&args_definition.keyword),
+            },
+        },
+        .target = cli.CommandTarget{ .action = cli.CommandAction{ .exec = run_search } },
+    };
+}
+
 fn free_args_definition() void {
     allocator.free(args_definition.keyword);
     if (gpa.deinit() == .leak) {
@@ -72,20 +89,7 @@ pub fn main_cli() cli.AppRunner.Error!cli.ExecFn {
         .target = cli.CommandTarget{
             .subcommands = &.{
                 try list_command(),
-                cli.Command{
-                    .name = "search",
-                    .description = cli.Description{ .one_line = "Searches for a commit emoji based on a keyword." },
-                    .options = &[_]cli.Option{
-                        cli.Option{
-                            .long_name = "keyword",
-                            .short_alias = 'k',
-                            .required = true,
-                            .help = "The keyword to search for in the list.",
-                            .value_ref = alloc.mkRef(&args_definition.keyword),
-                        },
-                    },
-                    .target = cli.CommandTarget{ .action = cli.CommandAction{ .exec = run_search } },
-                },
+                try search_command(alloc),
             },
         },
     };
