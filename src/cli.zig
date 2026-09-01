@@ -2,6 +2,7 @@ const std = @import("std");
 const cli = @import("zig-cli");
 const data = @import("./data.zig");
 const GitmojiConfig = @import("./models.zig").GitmojiConfig;
+const search_utils = @import("./search_utils.zig");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
@@ -9,24 +10,6 @@ const allocator = gpa.allocator();
 var args_definition = struct {
     keyword: []const u8 = undefined,
 }{};
-
-fn contains_subsequence(haystack: []const u8, needle: []const u8) bool {
-    const needle_len = needle.len;
-    const haystack_len = haystack.len;
-    if (needle_len > haystack_len) {
-        return false;
-    }
-    var buf1: [1024]u8 = undefined;
-    var buf2: [1024]u8 = undefined;
-    const lower_needle = std.ascii.lowerString(&buf1, needle);
-    for (0..haystack_len - needle_len + 1) |i| {
-        const lower_haystack = std.ascii.lowerString(&buf2, haystack[i .. i + needle_len]);
-        if (std.mem.eql(u8, lower_haystack, lower_needle)) {
-            return true;
-        }
-    }
-    return false;
-}
 
 fn run_list() !void {
     const data_list = data.data_list;
@@ -42,7 +25,7 @@ fn run_search() !void {
     std.log.info("Searching for {s}...", .{keyword});
     const original_list = data.data_list;
     for (original_list) |gitmoji| {
-        if (contains_subsequence(gitmoji.description, keyword)) {
+        if (search_utils.contains_subsequence(gitmoji.description, keyword)) {
             std.log.info("{s} - {s}", .{ gitmoji.emoji, gitmoji.description });
         }
     }
