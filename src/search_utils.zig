@@ -1,6 +1,6 @@
 const std = @import("std");
 
-fn contains_subsequence(haystack: []const u8, needle: []const u8) bool {
+pub fn contains_subsequence(haystack: []const u8, needle: []const u8) bool {
     const needle_len = needle.len;
     const haystack_len = haystack.len;
     if (needle_len > haystack_len) {
