@@ -6,7 +6,7 @@ This project is a discovery of Zig through the following usecase: use a service 
 
 ## Requirements
 
-- Zig 0.13.0
+- Zig 0.16.0
 
 ## Project
 
