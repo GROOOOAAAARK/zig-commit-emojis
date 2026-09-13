@@ -27,6 +27,62 @@ fn run_search() !void {
     }
 }
 
+fn print_line(io: std.Io, stream: std.Io.File, line: []const u8) !void {
+    var buf: [4096]u8 = undefined;
+    var w = stream.writer(io, &buf);
+    std.Io.Writer.print(&w.interface, "{s}\n", .{line}) catch return error.WriteFailed;
+    std.Io.File.Writer.flush(&w) catch return error.WriteFailed;
+}
+
+fn do_git_commit(io: std.Io, alloc: std.mem.Allocator, msg: []const u8, tag: ?[]const u8) !void {
+    const argv_plain = [_][]const u8{ "git", "commit", "-m", msg };
+    var child = try std.process.spawn(io, .{ .argv = argv_plain[0..] });
+    const term = try child.wait(io);
+    switch (term) {
+        .exited => |code| {
+            if (code != 0) std.process.exit(code);
+        },
+        else => std.process.exit(1),
+    }
+    if (tag) |t| {
+        const argv_tag = [_][]const u8{ "git", "tag", t };
+        var tag_child = try std.process.spawn(io, .{ .argv = argv_tag[0..] });
+        const tag_term = try tag_child.wait(io);
+        switch (tag_term) {
+            .exited => |code| {
+                if (code != 0) std.process.exit(code);
+            },
+            else => std.process.exit(1),
+        }
+    }
+    try print_line(io, std.Io.File.stdout(), try std.fmt.allocPrint(alloc, "Committed \"{s}\"", .{msg}));
+}
+
+fn run_commit() !void {
+    const r = g_runner;
+    const res = commit_cmd.run(r.arena.allocator()) catch |err| {
+        if (err == error.NotATty) {
+            print_line(r.io, std.Io.File.stderr(), "commit requires an interactive terminal") catch {};
+        }
+        return err;
+    };
+    switch (res) {
+        .aborted => return,
+        .cancelled => std.process.exit(130),
+        .picked => |msg| {
+            const tag = if (commit_args.tag.len > 0) commit_args.tag else null;
+            if (commit_args.dry_run) {
+                try print_line(r.io, std.Io.File.stdout(), msg);
+                if (tag) |t| {
+                    try print_line(r.io, std.Io.File.stdout(), try std.fmt.allocPrint(r.arena.allocator(), "would also create tag \"{s}\"", .{t}));
+                }
+                return;
+            }
+            try do_git_commit(r.io, r.arena.allocator(), msg, tag);
+        },
+    }
+}
+
 fn list_command() !cli.Command {
     return cli.Command{
         .name = "list",
