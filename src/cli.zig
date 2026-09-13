@@ -108,6 +108,31 @@ fn search_command(r: *cli.AppRunner) !cli.Command {
     };
 }
 
+fn commit_command(r: *cli.AppRunner) !cli.Command {
+    return cli.Command{
+        .name = "commit",
+        .description = cli.Description{ .one_line = "Pick a gitmoji, write a message and commit." },
+        .options = &[_]cli.Option{
+            cli.Option{
+                .long_name = "dry-run",
+                .short_alias = 'd',
+                .required = false,
+                .help = "Print the final message instead of running git commit.",
+                .value_ref = r.mkRef(&commit_args.dry_run),
+            },
+            cli.Option{
+                .long_name = "tag",
+                .short_alias = 't',
+                .required = false,
+                .help = "Create a light tag on the produced commit.",
+                .value_ref = r.mkRef(&commit_args.tag),
+                .value_name = "TAG",
+            },
+        },
+        .target = cli.CommandTarget{ .action = cli.CommandAction{ .exec = run_commit } },
+    };
+}
+
 pub fn main_cli(r: *cli.AppRunner) cli.AppRunner.Error!cli.ExecFn {
     const main_command = cli.Command{
         .name = "main_command",
