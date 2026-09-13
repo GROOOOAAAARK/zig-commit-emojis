@@ -21,7 +21,7 @@ fn run_search() !void {
     std.log.info("Searching for {s}...", .{keyword});
     const original_list = data.data_list;
     for (original_list) |gitmoji| {
-        if (search_utils.contains_subsequence(gitmoji.description, keyword)) {
+        if (search_utils.contains(gitmoji.description, keyword)) {
             std.log.info("{s} - {s}", .{ gitmoji.emoji, gitmoji.description });
         }
     }
