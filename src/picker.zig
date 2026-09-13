@@ -130,9 +130,10 @@ pub const State = struct {
         const body_rows = if (height > 3) height - 3 else 0;
         self.setViewport(body_rows);
 
+        try buf.appendSlice(alloc, "\x1b[1;1H\x1b[K");
         try buf.appendSlice(alloc, "filter: ");
         try buf.appendSlice(alloc, self.filterStr());
-        try buf.appendSlice(alloc, "█\x1b[K");
+        try buf.appendSlice(alloc, "█");
 
         var sep: [768]u8 = undefined;
         var sep_n: usize = 0;
@@ -140,9 +141,8 @@ pub const State = struct {
             @memcpy(sep[sep_n .. sep_n + 3], "─");
             sep_n += 3;
         }
-        try buf.appendSlice(alloc, "\n");
+        try buf.appendSlice(alloc, "\x1b[2;1H\x1b[K");
         try buf.appendSlice(alloc, sep[0..sep_n]);
-        try buf.appendSlice(alloc, "\x1b[K");
 
         if (body_rows > 0) {
             if (self.items.len == 0 and self.filter_len > 0) {
