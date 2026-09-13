@@ -95,40 +95,44 @@ pub const State = struct {
     pub fn render(self: *const State, alloc: std.mem.Allocator, width: usize, buf: *std.ArrayList(u8)) !void {
         buf.clearRetainingCapacity();
         try buf.appendSlice(alloc, "\x1b[H");
+        try buf.appendSlice(alloc, "\x1b[?25l");
 
-        try buf.appendSlice(alloc, "  ");
+        const desc_max = if (width > 5) width - 5 else 0;
         try buf.appendSlice(alloc, self.emoji);
         try buf.appendSlice(alloc, " ");
-        const desc_max = if (width > 5) width - 5 else 0;
         try buf.appendSlice(alloc, self.description[0..@min(desc_max, self.description.len)]);
-        try buf.appendSlice(alloc, "\x1b[K\n");
-        try buf.appendSlice(alloc, "\x1b[K\n");
+        try buf.appendSlice(alloc, "\x1b[K");
 
+        var sep: [768]u8 = undefined;
+        var sep_n: usize = 0;
+        while (sep_n + 3 <= @min(sep.len, width * 3)) {
+            @memcpy(sep[sep_n .. sep_n + 3], "─");
+            sep_n += 3;
+        }
+        try buf.appendSlice(alloc, "\n");
+        try buf.appendSlice(alloc, sep[0..sep_n]);
+        try buf.appendSlice(alloc, "\x1b[K");
 
-        const max_w = if (width > 2) width - 2 else 0;
-        const visible = self.text[0..@min(max_w, self.text.len)];
-        try buf.appendSlice(alloc, "  ");
-        try buf.appendSlice(alloc, visible);
-        try buf.appendSlice(alloc, "\x1b[K\n");
+        const max_w = if (width > 4) width - 4 else 0;
+        var start: usize = 0;
+        if (self.cursor > max_w) start = self.cursor - max_w;
+        const end = @min(self.text.len, start + max_w);
+        try buf.appendSlice(alloc, "\n");
+        try buf.appendSlice(alloc, "\x1b[3;1H\x1b[K> ");
+        try buf.appendSlice(alloc, self.text[start..self.cursor]);
+        try buf.appendSlice(alloc, "█");
+        try buf.appendSlice(alloc, self.text[self.cursor..end]);
+        try buf.appendSlice(alloc, "\x1b[K");
 
         if (self.error_msg) |err| {
-            try buf.appendSlice(alloc, "  ");
+            try buf.appendSlice(alloc, "\n");
             try buf.appendSlice(alloc, err);
         } else {
-            try buf.appendSlice(alloc, "  ");
+            try buf.appendSlice(alloc, "\n");
         }
-        try buf.appendSlice(alloc, "\x1b[K\n");
+        try buf.appendSlice(alloc, "\x1b[K");
 
-        try buf.appendSlice(alloc, "  esc: back to list · enter: commit\x1b[K\n");
-
-        const col: u16 = @intCast(@min(
-            width,
-            4 + (self.cursor - self.prefixLen()) + 1,
-        ));
-        var move: [16]u8 = undefined;
-        const s = try std.fmt.bufPrint(&move, "\x1b[3;{}H", .{col});
-        try buf.appendSlice(alloc, s);
-        try buf.appendSlice(alloc, "\x1b[?25h");
+        try buf.appendSlice(alloc, "\nesc: back to list · enter: commit\x1b[K");
         try buf.appendSlice(alloc, "\x1b[J");
     }
 };
@@ -219,8 +223,8 @@ test "message: render shows text and cursor move" {
     var buf = std.ArrayList(u8).empty;
     defer buf.deinit(alloc);
     try m.render(alloc, 80, &buf);
-    try testing.expect(std.mem.indexOf(u8, buf.items, "🐛 a") != null);
-    try testing.expect(std.mem.indexOf(u8, buf.items, "\x1b[3;") != null);
+    try testing.expect(std.mem.indexOf(u8, buf.items, "🐛 a█") != null);
+    try testing.expect(std.mem.indexOf(u8, buf.items, "\x1b[3;1H") != null);
     m.error_msg = "message cannot be empty";
     try m.render(alloc, 80, &buf);
     try testing.expect(std.mem.indexOf(u8, buf.items, "message cannot be empty") != null);
