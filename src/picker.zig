@@ -2,7 +2,6 @@ const std = @import("std");
 const models = @import("models.zig");
 const search_utils = @import("search_utils.zig");
 
-pub const EMOJI_FIELD = 4;
 pub const MAX_FILTER = 256;
 
 pub const State = struct {
@@ -128,41 +127,69 @@ pub const State = struct {
         buf.clearRetainingCapacity();
         try buf.appendSlice(alloc, "\x1b[H");
         try buf.appendSlice(alloc, "\x1b[?25l");
-        self.setViewport(@max(0, height - 1));
+        const body_rows = if (height > 3) height - 3 else 0;
+        self.setViewport(body_rows);
 
-        if (self.filter_len == 0) {
-            try buf.appendSlice(alloc, "  filter: (type to filter, esc abort)");
-        } else {
-            try buf.appendSlice(alloc, "  filter: ");
-            try buf.appendSlice(alloc, self.filterStr());
+        try buf.appendSlice(alloc, "filter: ");
+        try buf.appendSlice(alloc, self.filterStr());
+        try buf.appendSlice(alloc, "█\x1b[K");
+
+        var sep: [768]u8 = undefined;
+        var sep_n: usize = 0;
+        while (sep_n + 3 <= @min(sep.len, width * 3)) {
+            @memcpy(sep[sep_n .. sep_n + 3], "─");
+            sep_n += 3;
         }
-        try buf.appendSlice(alloc, "\x1b[K\n");
+        try buf.appendSlice(alloc, "\n");
+        try buf.appendSlice(alloc, sep[0..sep_n]);
+        try buf.appendSlice(alloc, "\x1b[K");
 
-        const body_rows = @max(0, height - 1);
-        const body_width = if (width > 6 + EMOJI_FIELD) width - 6 - EMOJI_FIELD else 0;
-
-        var printed: usize = 0;
-        if (self.items.len == 0 and self.filter_len > 0 and body_rows > 0) {
-            try buf.appendSlice(alloc, "  no match for \"");
-            try buf.appendSlice(alloc, self.filterStr());
-            try buf.appendSlice(alloc, "\"\x1b[K\n");
-            printed = 1;
-        }
-
-        for (printed..body_rows) |r| {
-            const i = self.viewport_top + @as(usize, @intCast(r));
-            if (self.items.len == 0 or i >= self.items.len) {
-                try buf.appendSlice(alloc, "\x1b[K\n");
-                continue;
+        if (body_rows > 0) {
+            if (self.items.len == 0 and self.filter_len > 0) {
+                var line: [128]u8 = undefined;
+                const s = try std.fmt.bufPrint(&line, "\x1b[3;1H\x1b[Kno match for \"{s}\"", .{self.filterStr()});
+                try buf.appendSlice(alloc, s);
+            } else {
+                const desc_max = if (width > 6) width - 6 else 0;
+                for (0..body_rows) |r| {
+                    const row = r + 3;
+                    const i = self.viewport_top + @as(usize, @intCast(r));
+                    var line: [256]u8 = undefined;
+                    if (self.items.len == 0 or i >= self.items.len) {
+                        const s = try std.fmt.bufPrint(&line, "\x1b[{};1H\x1b[K", .{row});
+                        try buf.appendSlice(alloc, s);
+                        continue;
+                    }
+                    const g = self.items[i];
+                    const marker: []const u8 = if (i == self.selected) "> " else "  ";
+                    const s = try std.fmt.bufPrint(&line, "\x1b[{};1H\x1b[K{s}\x1b[3G{s}\x1b[7G{s}", .{
+                        row,
+                        marker,
+                        g.emoji,
+                        g.description[0..@min(desc_max, g.description.len)],
+                    });
+                    try buf.appendSlice(alloc, s);
+                }
             }
-            const g = self.items[i];
-            const marker: []const u8 = if (i == self.selected) "> " else "  ";
-            try buf.appendSlice(alloc, marker);
-            try buf.appendSlice(alloc, g.emoji);
-            try buf.appendSlice(alloc, "  ");
-            const desc = g.description[0..@min(body_width, g.description.len)];
-            try buf.appendSlice(alloc, desc);
-            try buf.appendSlice(alloc, "\x1b[K\n");
+        }
+
+        const footer_row: u16 = @intCast(height);
+        var footer: [256]u8 = undefined;
+        if (self.items.len > 0) {
+            const last = @min(self.viewport_top + body_rows, self.items.len);
+            const s = try std.fmt.bufPrint(
+                &footer,
+                "\x1b[{};1H\x1b[Kup/down move · enter pick · esc clear/abort   {d}-{d} / {d}",
+                .{ footer_row, self.viewport_top + 1, last, self.items.len },
+            );
+            try buf.appendSlice(alloc, s);
+        } else {
+            const s = try std.fmt.bufPrint(
+                &footer,
+                "\x1b[{};1H\x1b[Kup/down move · enter pick · esc clear/abort",
+                .{footer_row},
+            );
+            try buf.appendSlice(alloc, s);
         }
 
         try buf.appendSlice(alloc, "\x1b[J");
@@ -265,7 +292,10 @@ test "picker: render contains rows and no-match line" {
     try p.render(alloc, 10, 80, &buf);
     defer buf.deinit(alloc);
     try testing.expect(std.mem.indexOf(u8, buf.items, "Fix a bug.") != null);
+    try testing.expect(std.mem.indexOf(u8, buf.items, "filter: █") != null);
+    try testing.expect(std.mem.indexOf(u8, buf.items, "1-4 / 4") != null);
     try p.typeChar(alloc, 'z');
     try p.render(alloc, 10, 80, &buf);
     try testing.expect(std.mem.indexOf(u8, buf.items, "no match for") != null);
+    try testing.expect(std.mem.indexOf(u8, buf.items, "filter: z█") != null);
 }
