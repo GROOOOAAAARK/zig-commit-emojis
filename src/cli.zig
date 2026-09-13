@@ -2,6 +2,7 @@ const std = @import("std");
 const cli = @import("cli");
 const data = @import("./data.zig");
 const search_utils = @import("./search_utils.zig");
+const commit_cmd = @import("./commit_cmd.zig");
 
 var args_definition = struct {
     keyword: []const u8 = undefined,
