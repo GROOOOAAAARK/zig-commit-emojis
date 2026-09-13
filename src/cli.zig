@@ -134,6 +134,7 @@ fn commit_command(r: *cli.AppRunner) !cli.Command {
 }
 
 pub fn main_cli(r: *cli.AppRunner) cli.AppRunner.Error!cli.ExecFn {
+    g_runner = r;
     const main_command = cli.Command{
         .name = "main_command",
         .description = cli.Description{ .one_line = "⚡ zig-commit-emoji helps you use emojis in your commits" },
@@ -141,6 +142,7 @@ pub fn main_cli(r: *cli.AppRunner) cli.AppRunner.Error!cli.ExecFn {
             .subcommands = &.{
                 try list_command(),
                 try search_command(r),
+                try commit_command(r),
             },
         },
     };
