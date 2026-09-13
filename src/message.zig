@@ -94,14 +94,13 @@ pub const State = struct {
 
     pub fn render(self: *const State, alloc: std.mem.Allocator, width: usize, buf: *std.ArrayList(u8)) !void {
         buf.clearRetainingCapacity();
-        try buf.appendSlice(alloc, "\x1b[H");
         try buf.appendSlice(alloc, "\x1b[?25l");
 
         const desc_max = if (width > 5) width - 5 else 0;
+        try buf.appendSlice(alloc, "\x1b[1;1H\x1b[K");
         try buf.appendSlice(alloc, self.emoji);
         try buf.appendSlice(alloc, " ");
         try buf.appendSlice(alloc, self.description[0..@min(desc_max, self.description.len)]);
-        try buf.appendSlice(alloc, "\x1b[K");
 
         var sep: [768]u8 = undefined;
         var sep_n: usize = 0;
@@ -109,30 +108,25 @@ pub const State = struct {
             @memcpy(sep[sep_n .. sep_n + 3], "─");
             sep_n += 3;
         }
-        try buf.appendSlice(alloc, "\n");
+        try buf.appendSlice(alloc, "\x1b[2;1H\x1b[K");
         try buf.appendSlice(alloc, sep[0..sep_n]);
-        try buf.appendSlice(alloc, "\x1b[K");
 
         const max_w = if (width > 4) width - 4 else 0;
         var start: usize = 0;
         if (self.cursor > max_w) start = self.cursor - max_w;
         const end = @min(self.text.len, start + max_w);
-        try buf.appendSlice(alloc, "\n");
         try buf.appendSlice(alloc, "\x1b[3;1H\x1b[K> ");
         try buf.appendSlice(alloc, self.text[start..self.cursor]);
         try buf.appendSlice(alloc, "█");
         try buf.appendSlice(alloc, self.text[self.cursor..end]);
-        try buf.appendSlice(alloc, "\x1b[K");
 
+        try buf.appendSlice(alloc, "\x1b[4;1H\x1b[K");
         if (self.error_msg) |err| {
-            try buf.appendSlice(alloc, "\n");
             try buf.appendSlice(alloc, err);
-        } else {
-            try buf.appendSlice(alloc, "\n");
         }
-        try buf.appendSlice(alloc, "\x1b[K");
 
-        try buf.appendSlice(alloc, "\nesc: back to list · enter: commit\x1b[K");
+        try buf.appendSlice(alloc, "\x1b[5;1H\x1b[K");
+        try buf.appendSlice(alloc, "esc: back to list · enter: commit");
         try buf.appendSlice(alloc, "\x1b[J");
     }
 };
