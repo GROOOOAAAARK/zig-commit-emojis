@@ -40,9 +40,9 @@ pub fn run(alloc: std.mem.Allocator) !Result {
 
     while (true) {
         const size = terminal.size(STDIN) catch continue;
-        const height: usize = @max(2, @as(usize, @intCast(size.rows)));
+        const height: usize = @max(4, @as(usize, @intCast(size.rows)));
         const width: usize = @max(8, @as(usize, @intCast(size.cols)));
-        const rows = height - 1;
+        const rows = if (height > 3) height - 3 else 0;
 
         switch (phase) {
             .list => try p.render(alloc, height, width, &frame),
