@@ -7,6 +7,13 @@ var args_definition = struct {
     keyword: []const u8 = undefined,
 }{};
 
+var commit_args = struct {
+    dry_run: bool = false,
+    tag: []const u8 = "",
+}{};
+
+var g_runner: *cli.AppRunner = undefined;
+
 fn run_list() !void {
     const data_list = data.data_list;
 
