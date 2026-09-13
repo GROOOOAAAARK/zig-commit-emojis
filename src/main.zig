@@ -9,3 +9,10 @@ pub fn main(init: std.process.Init) !void {
     const action = try app.main_cli(&r);
     return action();
 }
+
+test {
+    _ = @import("./search_utils.zig");
+    _ = @import("./terminal.zig");
+    _ = @import("./picker.zig");
+    _ = @import("./message.zig");
+}
