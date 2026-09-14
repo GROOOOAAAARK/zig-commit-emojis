@@ -1,0 +1,33 @@
+name: Release 🚀
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to be released
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build
+        uses: ./.github/workflows/ci.yml
+      - name: Store artifacts
+        run: |
+           echo ./zig-out/bin/* >> $GITHUB_ARTIFACTS
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ inputs.version }}
+          release_name: v${{ inputs.version }}
+          draft: false
+          prerelease: false
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          make_latest: true
+          files: $GITHUB_ARTIFACTS
+          overwrite_files: true
