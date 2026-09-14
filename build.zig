@@ -14,9 +14,9 @@ pub fn build(b: *std.Build) void {
     // Queries for targeting all OS in the build process
     const target_queries = [_]std.Target.Query{
         .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .musl },
-        .{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu },
+        .{ .cpu_arch = .aarch64, .os_tag = .macos },
         // Current implementation of terminal.zig is POSIX only, to fix for Windows build to work
-        //.{ .cpu_arch = .aarch64, .os_tag = .macos },
+        // .{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }
     };
 
     const host_target = b.resolveTargetQuery(.{});
