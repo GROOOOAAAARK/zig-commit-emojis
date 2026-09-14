@@ -28,6 +28,14 @@ pub fn build(b: *std.Build) void {
         const is_host = resolved_target.result.os.tag == host_target.result.os.tag and
             resolved_target.result.cpu.arch == host_target.result.cpu.arch;
 
+        const default_exec_name = "zig-commit-emoji";
+        const exec_name: []const u8 = switch (tq.os_tag.?) {
+            .linux => default_exec_name ++ "-linux",
+            .windows => default_exec_name ++ "-windows",
+            .macos => default_exec_name ++ "-macos",
+            else => "",
+        };
+
         const run_step_name: []const u8 = switch (tq.os_tag.?) {
             .linux => "run-linux",
             .windows => "run-windows",
@@ -54,7 +62,7 @@ pub fn build(b: *std.Build) void {
         };
 
         const exe = b.addExecutable(.{
-            .name = "zig-commit-emoji",
+            .name = exec_name,
             .root_module = b.createModule(.{
                 .root_source_file = b.path("./src/main.zig"),
                 .target = resolved_target,
