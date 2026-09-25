@@ -7,15 +7,23 @@ on:
         description: Version to be released
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
+    uses: ./.github/workflows/ci.yml
+    with:
+      build_dist: true
+
+  release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Build
-        uses: ./.github/workflows/ci.yml
-      - name: Store artifacts
-        run: |
-           echo ./zig-out/bin/* >> $GITHUB_ARTIFACTS
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v3
@@ -29,5 +37,5 @@ jobs:
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
           make_latest: true
-          files: $GITHUB_ARTIFACTS
+          files: dist/*
           overwrite_files: true
