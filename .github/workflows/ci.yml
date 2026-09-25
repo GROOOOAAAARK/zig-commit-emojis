@@ -7,13 +7,32 @@ on:
   pull_request:
     branches:
       - trunk
+  workflow_call:
+    inputs:
+      build_dist:
+        description: Build cross-compiled release assets
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.16.0
       - run: zig build
+      - name: Build release assets
+        if: inputs.build_dist
+        run: zig build dist
+      - uses: actions/upload-artifact@v4
+        if: inputs.build_dist
+        with:
+          name: zig-commit-emoji-dist
+          path: zig-out/dist/*
+          if-no-files-found: error
