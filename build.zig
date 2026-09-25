@@ -23,6 +23,10 @@ pub fn build(b: *std.Build) void {
     var host_run_step: ?*std.Build.Step = null;
     var host_test_step: ?*std.Build.Step = null;
 
+    // Release assets go here as `zig-out/dist/<name>`. Separate from the default
+    // install step so `zig build` stays fast and never cross-compiles.
+    const dist_step = b.step("dist", "Build release assets for all supported targets");
+
     for (target_queries) |tq| {
         const resolved_target = b.resolveTargetQuery(tq);
         const is_host = resolved_target.result.os.tag == host_target.result.os.tag and
@@ -60,6 +64,14 @@ pub fn build(b: *std.Build) void {
             .macos => "Run unit tests (macos)",
             else => "Run unit tests",
         };
+        // Release asset name per target. `.windows` is null: terminal.zig is
+        // POSIX-only, so the Windows target does not build yet.
+        const dist_name: ?[]const u8 = switch (tq.os_tag.?) {
+            .linux => "zce-linux-musl-x86_64",
+            .macos => "zce-macos-aarch64",
+            .windows => null,
+            else => null,
+        };
 
         const exe = b.addExecutable(.{
             .name = exec_name,
@@ -79,6 +91,15 @@ pub fn build(b: *std.Build) void {
             // standard location when the user invokes the "install" step (the default
             // step when running `zig build`).
             b.installArtifact(exe);
+        }
+
+        // Named release asset, selected via `zig build dist`.
+        if (dist_name) |name| {
+            const install_exe = b.addInstallArtifact(exe, .{
+                .dest_dir = .{ .override = .{ .custom = "dist" } },
+                .dest_sub_path = name,
+            });
+            dist_step.dependOn(&install_exe.step);
         }
 
         // This *creates* a Run step in the build graph, to be executed when another
@@ -139,6 +160,9 @@ pub fn build(b: *std.Build) void {
     }
 
     // Plain `zig build run` / `zig build test` target the host OS.
+    // NOTE: host_run_step / host_test_step are null when the host is not in
+    // `target_queries` (e.g. x86_64-macos, aarch64-linux); the `.?` below then
+    // panics. Known, not fixed yet.
     const run_step = b.step("run", "Run the app (host)");
     run_step.dependOn(host_run_step.?);
     const test_step = b.step("test", "Run unit tests (host)");
