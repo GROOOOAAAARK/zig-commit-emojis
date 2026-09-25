@@ -156,7 +156,7 @@ pub fn main_cli(r: *cli.AppRunner) cli.AppRunner.Error!cli.ExecFn {
     };
 
     const app = cli.App{
-        .version = "0.4.1",
+        .version = "0.4.2",
         .author = "GRK",
         .command = main_command,
     };
